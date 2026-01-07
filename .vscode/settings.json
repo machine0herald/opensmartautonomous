@@ -1,0 +1,13 @@
+{
+    "ROS2.distro": "jazzy",
+    "python.autoComplete.extraPaths": [
+        "/home/matt/ros_ws/src/CoDI",
+        "/home/matt/cora_robot/src/CoDI",
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/matt/ros_ws/src/CoDI",
+        "/home/matt/cora_robot/src/CoDI",
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ]
+}
