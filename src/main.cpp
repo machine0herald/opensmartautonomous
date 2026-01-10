@@ -1,87 +1,100 @@
 //test 1:2015.08.15
 #include <car_bluetooth.h>
 #include <SoftwareSerial.h>   //Software Serial Port
-// #include <String.h>
 #include "QuadMotorDriver.h"
+#include <Ultrasonic.h>
 
+#define TRIGGER_PIN  7//connect Trip of the Ultrasonic Sensor moudle to D5 of Arduino 
+                      //and can be changed to other ports
+#define ECHO_PIN     8
 
-#define RxD 2//D2 of Arduino should connect to TX of the Serial Bluetooth module
-#define TxD 4//D4 of Arduino should connect to RX of the Serial Bluetooth module
-CarBluetooth bluetooth(RxD, TxD);
-#define CMD_INVALID     0XFF
-#define CMD_FORWARD     'F'
-#define CMD_TURN_RIGHT 'I'
-#define CMD_SLIDE_RIGHT 'R'
-#define CMD_BACKWARD    'B'
+Ultrasonic ultrasonic(TRIGGER_PIN, ECHO_PIN);
 
-#define CMD_TURN_LEFT  'G'
-#define CMD_SLIDE_LEFT 'L'
-#define CMD_STOP        'S'
-
-#define SPEED_STEPS 50
-uint8_t speed0 = 255;
-
-void setup(){
-  motordriver.init(3,5,6,11);	
-  
-  bluetooth.waitConnected();
-  motordriver.setSpeed(255);
-}
-uint8_t bt_command;
-
-#define CAR_STOP 0
-#define CAR_FORWARD 1
-#define CAR_BACK 2
-uint8_t car_status = CAR_STOP;
-uint8_t new_status = car_status;
-
-
-
-void controlCar(uint8_t cmd){
-  switch(cmd)
-  {
-    case CMD_FORWARD:     motordriver.goForward();break;
-    case CMD_SLIDE_RIGHT:     motordriver.slideRight();break;
-    case CMD_TURN_RIGHT: 
-    motordriver.turnRight();
-    // delay(200); 
-    break;
-    case CMD_BACKWARD:    motordriver.goBackward(); break;
-    case CMD_SLIDE_LEFT:    motordriver.slideLeft(); break;
-    case CMD_TURN_LEFT:  motordriver.turnLeft();
-    // delay(200);
-    break;
-    case CMD_STOP:        motordriver.stop();break;
-    default: break;
-  }
-  if((cmd>='0')&&(cmd<='9'))
-  {
-    speed0 = cmd-0x30;
-    Serial.print(speed0);
-    Serial.print(">");
-    speed0 = map(speed0, 0, 9, 0, 255);
-    Serial.println(speed0);
-    motordriver.setSpeed(speed0);
-  }
-}
+#define SPEED_STEPS 20
+uint32_t max_speed = 100;
+uint32_t min_speed = 50;
+uint8_t speed0 = 20;
+uint8_t distanceThreshold = 40; // in cm
+float distance;
+String state = "Forward";
 
 void speedUp(){
-  if(speed0 < 236)speed0 += SPEED_STEPS;
-  else speed0 = 255;
+  if(speed0 < max_speed){
+    speed0 += SPEED_STEPS;
+  }
+  else speed0 = max_speed;
   motordriver.setSpeed(speed0);
 }
 
 void speedDown(){
-  if(speed0 > 70)speed0 -= SPEED_STEPS;
-  else speed0 = 50;
+  if(speed0 > min_speed){
+    speed0 -= SPEED_STEPS;
+  }
+  else speed0 = min_speed;
   motordriver.setSpeed(speed0);
 }
 
-void loop(){
-  bt_command = bluetooth.readByte();
+void setup(){
+  motordriver.init(3,5,6,11);	
+  motordriver.setSpeed(255);
+  Serial.begin(9600);
+  Serial.println("Setup complete.");
+}
 
-  if(bt_command != CMD_INVALID){
-  controlCar(bt_command);
+void loop(){
+  distance = ultrasonic.convert(ultrasonic.timing(), Ultrasonic::CM);
+  
+  if (state == "Forward") {
+    motordriver.goForward();
+    if (distance < distanceThreshold) {
+      state = "Turn";
+      Serial.println("State changed to Turn");
+    } 
+    else {
+      speedUp();
+    }
   }
 
+  else if (state == "Turn")
+  {
+    motordriver.turnLeft();
+    if (distance >= distanceThreshold) {
+      state = "Forward";
+      Serial.println("State changed to Forward");
+    }
+  }
 }
+
+
+/*
+ // HCSR04Ultrasonic/examples/UltrasonicDemo/UltrasonicDemo.ino
+ // for 4WD Bluetooth by catalex
+ // Store: http://www.aliexpress.com/store/1199788
+//      http://dx.com
+ */
+
+
+
+
+
+// void setup()
+//   {
+//   Serial.begin(9600);
+//   }
+
+// void loop()
+//   {
+//   float cmMsec, inMsec;
+//   long microsec = ultrasonic.timing();
+
+//   cmMsec = ultrasonic.convert(microsec, Ultrasonic::CM);
+//   inMsec = ultrasonic.convert(microsec, Ultrasonic::IN);
+//   Serial.print("MS: ");
+//   Serial.print(microsec);
+//   Serial.print(", CM: ");
+//   Serial.print(cmMsec);
+//   Serial.print(", IN: ");
+//   Serial.println(inMsec);
+//   delay(1000);
+//   }
+
