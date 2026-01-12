@@ -4,11 +4,16 @@
 #include "QuadMotorDriver.h"
 #include <Ultrasonic.h>
 
-#define TRIGGER_PIN  7//connect Trip of the Ultrasonic Sensor moudle to D5 of Arduino 
+#define TRIGGER_PIN_L  7//connect Trip of the Ultrasonic Sensor moudle to D5 of Arduino 
                       //and can be changed to other ports
-#define ECHO_PIN     8
+#define ECHO_PIN_L     8
 
-Ultrasonic ultrasonic(TRIGGER_PIN, ECHO_PIN);
+#define TRIGGER_PIN_R  2//connect Trip of the Ultrasonic Sensor moudle to D5 of Arduino 
+                      //and can be changed to other ports
+#define ECHO_PIN_R     4
+
+Ultrasonic ultrasonic_left(TRIGGER_PIN_L, ECHO_PIN_L);
+Ultrasonic ultrasonic_right(TRIGGER_PIN_R, ECHO_PIN_R);
 
 #define SPEED_STEPS 20
 uint32_t max_speed = 100;
@@ -36,65 +41,79 @@ void speedDown(){
 
 void setup(){
   motordriver.init(3,5,6,11);	
-  motordriver.setSpeed(255);
   Serial.begin(9600);
   Serial.println("Setup complete.");
 }
 
-void loop(){
-  distance = ultrasonic.convert(ultrasonic.timing(), Ultrasonic::CM);
-  
-  if (state == "Forward") {
-    motordriver.goForward();
-    if (distance < distanceThreshold) {
-      state = "Turn";
-      Serial.println("State changed to Turn");
-    } 
-    else {
-      speedUp();
-    }
-  }
+// Define a struct to hold the cruise controller output
+struct CruiseControlOutput {
+  int turn_speed;
+  int forward_speed;
+};
 
-  else if (state == "Turn")
-  {
-    motordriver.turnLeft();
-    if (distance >= distanceThreshold) {
-      state = "Forward";
-      Serial.println("State changed to Forward");
+CruiseControlOutput twist;
+
+// Modify the cruise_controller function to return the struct
+CruiseControlOutput cruise_controller(float left_distance, float right_distance) {
+  float k_p_turn = 2.0;
+  float k_p_forward = 0.5;
+
+  int turn_speed = static_cast<int>(k_p_turn * (left_distance - right_distance)); // Explicit initialization
+  int forward_speed = static_cast<int>(k_p_forward * (left_distance + right_distance)); // Explicit initialization
+
+  return {turn_speed, forward_speed};
+}
+
+void twist_motor_speed(int turn_speed, int forward_speed){
+  int speed_A = turn_speed + forward_speed; 
+  int speed_B = turn_speed + forward_speed;
+  int speed_C = turn_speed - forward_speed;
+  int speed_D = turn_speed - forward_speed;
+  int speeds[] = {speed_A, speed_B, speed_C, speed_D};
+
+  for (int motorID = 0; motorID < 4; motorID++){ 
+    motordriver.setSpeed(abs(speeds[motorID]), motorID);
+    Serial.print("Motor ");Serial.print(motorID);
+    Serial.print(" speed: ");Serial.println(speeds[motorID]);
+
+    if (speeds[motorID] >= 0){
+      motordriver.rotate(MOTOR_CLOCKWISE, motorID);
+    }
+    else {
+      motordriver.rotate(MOTOR_ANTICLOCKWISE, motorID);
     }
   }
 }
 
-
-/*
- // HCSR04Ultrasonic/examples/UltrasonicDemo/UltrasonicDemo.ino
- // for 4WD Bluetooth by catalex
- // Store: http://www.aliexpress.com/store/1199788
-//      http://dx.com
- */
-
-
-
-
-
-// void setup()
-//   {
-//   Serial.begin(9600);
+void  loop(){
+  float distance_left = ultrasonic_left.convert(ultrasonic_left.timing(), Ultrasonic::CM);
+  float distance_right = ultrasonic_right.convert(ultrasonic_right.timing(), Ultrasonic::CM);
+  // Serial.print("Left Distance: "); Serial.print(distance_left); Serial.print(" cm\t");
+  // Serial.print("Right Distance: "); Serial.print(distance_right); Serial.println(" cm");
+  twist = cruise_controller(distance_left, distance_right);
+  twist_motor_speed(twist.turn_speed, twist.forward_speed);
+  delay(50);
+}
+// void loop(){
+//   distance = ultrasonic.convert(ultrasonic.timing(), Ultrasonic::CM);
+  
+//   if (state == "Forward") {
+//     motordriver.goForward();
+//     if (distance < distanceThreshold) {
+//       state = "Turn";
+//       Serial.println("State changed to Turn");
+//     } 
+//     else {
+//       speedUp();
+//     }
 //   }
 
-// void loop()
+//   else if (state == "Turn")
 //   {
-//   float cmMsec, inMsec;
-//   long microsec = ultrasonic.timing();
-
-//   cmMsec = ultrasonic.convert(microsec, Ultrasonic::CM);
-//   inMsec = ultrasonic.convert(microsec, Ultrasonic::IN);
-//   Serial.print("MS: ");
-//   Serial.print(microsec);
-//   Serial.print(", CM: ");
-//   Serial.print(cmMsec);
-//   Serial.print(", IN: ");
-//   Serial.println(inMsec);
-//   delay(1000);
+//     motordriver.turnLeft();
+//     if (distance >= distanceThreshold) {
+//       state = "Forward";
+//       Serial.println("State changed to Forward");
+//     }
 //   }
-
+// }

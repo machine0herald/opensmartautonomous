@@ -19,6 +19,7 @@ void QuadMotorDriver::init(uint8_t PWMA, uint8_t PWMB,uint8_t PWMC,uint8_t PWMD)
 	Wire.begin();
 	stop();
 }
+
 void QuadMotorDriver::setSpeed(int8_t speed)
 {
 	if(speed > 255)speed=255;
@@ -33,14 +34,18 @@ void QuadMotorDriver::setSpeed(int8_t speed, uint8_t motorID)
 	if(speed > 255)speed=255;
 	switch (motorID)
 	{
-	  case MOTORA:analogWrite(pwma, speed);
-	  	          break;
-	  case MOTORB:analogWrite(pwmb, speed);
-	  	          break;
-	  case MOTORC:analogWrite(pwmc, speed);
-	  	          break;
-	  case MOTORD:analogWrite(pwmd, speed);
-	  	          break;
+	  case MOTORA:
+	  	analogWrite(pwma, speed);
+		break;
+	  case MOTORB:
+	  	analogWrite(pwmb, speed);
+		break;
+	  case MOTORC:
+	  	analogWrite(pwmc, speed);
+		break;
+	  case MOTORD:
+	  	analogWrite(pwmd, speed);
+		break;
 	  default: break;
 	}
 }
