@@ -55,10 +55,14 @@ CruiseControlOutput twist;
 
 // Modify the cruise_controller function to return the struct
 CruiseControlOutput cruise_controller(float left_distance, float right_distance) {
-  float k_p_turn = 2.0;
-  float k_p_forward = 0.5;
+  float k_p_turn = 1.9;
+  float k_p_forward = 0.9;
+  float k_p_turn_med = 2.8;
 
-  int turn_speed = static_cast<int>(k_p_turn * (left_distance - right_distance)); // Explicit initialization
+  int turn_speed = static_cast<int>(
+    (k_p_turn * (left_distance - right_distance)) +
+            (k_p_turn_med / (left_distance + right_distance))
+          ); // Explicit initialization
   int forward_speed = static_cast<int>(k_p_forward * (left_distance + right_distance)); // Explicit initialization
 
   return {turn_speed, forward_speed};
@@ -94,26 +98,3 @@ void  loop(){
   twist_motor_speed(twist.turn_speed, twist.forward_speed);
   delay(50);
 }
-// void loop(){
-//   distance = ultrasonic.convert(ultrasonic.timing(), Ultrasonic::CM);
-  
-//   if (state == "Forward") {
-//     motordriver.goForward();
-//     if (distance < distanceThreshold) {
-//       state = "Turn";
-//       Serial.println("State changed to Turn");
-//     } 
-//     else {
-//       speedUp();
-//     }
-//   }
-
-//   else if (state == "Turn")
-//   {
-//     motordriver.turnLeft();
-//     if (distance >= distanceThreshold) {
-//       state = "Forward";
-//       Serial.println("State changed to Forward");
-//     }
-//   }
-// }
